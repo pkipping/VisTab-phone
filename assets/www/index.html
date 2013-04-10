@@ -22,6 +22,7 @@
         <meta charset="utf-8" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+        <script type="text/javascript" src="js\qrcode.js"></script>
         <title>Vistab</title>
 <style type="text/css">      
 html, body {
@@ -45,48 +46,97 @@ html, body {
 
       /* Opera 11.10+ */
       background: -o-linear-gradient(top, #688d23, #92be3f);
+      color:#58595b;
 }
 .pageThing {
         display:none;
 }
 .formArea, .formElement {
-        font-size:30px;
-        font-weight:bold;
+    font-size:50px;
+    font-weight:bold;
+    color:#58595b;
+    
 }
+
 .formElement {
-        width: 60%;
-        padding:8px;
+    width:60%;
+    padding:12px;
+    margin:15px;
+    border-radius:12px;
 }
+
+.formSubmit {
+    width:60%;
+    padding:12px;
+    margin:15px;
+    font-size:50px;
+    font-weight:bold;
+    color:#58595b;
+    border-radius:12px;
+    background: #92be3f;
+    border:3px;
+    border-color: #FFFFFF;
+}
+
 .logo {
     margin-top: 15%;
     margin-bottom: 10%;
     width:90%;
-    
 }
+
+.QR {
+    margin-top: 10%;
+    border-color: #000000;
+    border:10px;
+}
+
 
 </style>        
 <script type="text/javascript">
 function changePage(page_name) {
         document.getElementById("loginPage").style.display = "none";
         document.getElementById("loggedInPage").style.display = "none";
-        //
         document.getElementById(page_name).style.display = "block";
-       
 }
-               
+
+var create_qrcode = function(text, typeNumber, errorCorrectLevel) {
+
+	var qr = qrcode(typeNumber || 4, errorCorrectLevel || 'M');
+	qr.addData(text);
+	qr.make();
+
+//	return qr.createTableTag();
+	return qr.createImgTag();
+};
+
+var draw_qrcode = function() {
+	var text = "Hello moto";
+        document.getElementById('qr').innerHTML = create_qrcode(text);
+};
+
 window.addEventListener('load', function() {
         // txEmail and txPassword are available
+        
        
         var btLogin = document.getElementById("btLogin");
         btLogin.onclick = function() {
                 var txEmail = document.getElementById("txEmail");
                 var txPassword = document.getElementById("txPassword");
                
+               
+                var httpResponse = new XMLHttpRequest();
+                httpResponse.open("GET", "https://manage2.vistab.co.nz/api/v1/config?kiosk=crt001", true);
+                httpResponse.onreadystatechange = function() {
+                    console.log(httpResponse.responseText);
+                }
+                httpResponse.send();
+                
                 console.log("asdfasdf "+txEmail.value+" asdfasdf "+txPassword.value);
                
                 changePage("loggedInPage");
+                draw_qrcode();
         }
-       
+        
         //display the first page
         changePage("loginPage");
        
@@ -95,25 +145,25 @@ window.addEventListener('load', function() {
         </head>
         <body>
                
-                <img src="img\main.png" class="logo"/>
+                
                
                 <div class="pageThing" id="loginPage">
-                       
+                       <img src="img\main.png" class="logo"/>
                         <div class="formArea">
                                 Please enter your details.
                                 <br>
-                                <input type="email" class="formElement" id="txEmail" autofocus>
+                                <input type="email" class="formElement" id="txEmail" placeHolder="email">
                                 <br>
-                                <input type="password" class="formElement" id="txPassword">
+                                <input type="password" class="formElement" id="txPassword" placeHolder="password">
                                 <br>
-                                <input type="button" id="btLogin" value="Login">
+                                <input type="button" id="btLogin" value="Login" class="formSubmit">
                         </div>
-                       
                 </div>
                
                 <div class="pageThing" id="loggedInPage">
-                        You have logged in!
-                </div>
+                        
+                        <div id="qr" class="QR"></div>
+                        <div id="name" class="theText">Peter Kipping</div>
                
         </body>
 </html>
