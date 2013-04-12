@@ -22,9 +22,12 @@
         <meta charset="utf-8" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
-        <script type="text/javascript" src="js\qrcode.js"></script>
+        <script type="text/javascript" charset="utf-8" src="cordova-2.6.0.js"></script>
+        <script type="text/javascript" charset="utf-8" src="js/jquery-1.9.1.min.js"></script>
+        <script type="text/javascript" src="js/jquery.qrcode.min.js"></script>
         <title>Vistab</title>
-<style type="text/css">      
+<style type="text/css">
+    
 html, body {
         height:100%;
         margin:0;
@@ -65,6 +68,12 @@ html, body {
     border-radius:12px;
 }
 
+.formElementCheck {
+    -webkit-transform: scale(3);
+    margin-right:20px;
+    
+}
+
 .formSubmit {
     width:60%;
     padding:12px;
@@ -86,84 +95,152 @@ html, body {
 
 .QR {
     margin-top: 10%;
-    border-color: #000000;
-    border:10px;
 }
 
-
+.errorStyle{
+    color:red
+}
 </style>        
 <script type="text/javascript">
-function changePage(page_name) {
+function changePage(page_name, value, name) {
         document.getElementById("loginPage").style.display = "none";
         document.getElementById("loggedInPage").style.display = "none";
         document.getElementById(page_name).style.display = "block";
+        if(page_name=="loggedInPage"){
+            if(value){
+                 try{jQuery('#qr').qrcode({width: 500,height: 500,text: value});}
+                catch(err){alert(err)}
+            } else {
+                var db = window.openDatabase("test", "1.0", "Test DB", 1000000);
+                db.transaction(queryDB);
+            }
+        } else if(page_name=="loginPage"){
+            drawText();
+        }
 }
 
-var create_qrcode = function(text, typeNumber, errorCorrectLevel) {
+function populateDB(tx) {
+     tx.executeSql('CREATE TABLE IF NOT EXISTS DEMO (id unique, data)');
+}
 
-	var qr = qrcode(typeNumber || 4, errorCorrectLevel || 'M');
-	qr.addData(text);
-	qr.make();
+function queryDB(tx) {
+    tx.executeSql('SELECT * FROM DEMO', [], querySuccess);
+}
 
-//	return qr.createTableTag();
-	return qr.createImgTag();
-};
+function querySuccess(tx, results) {
+    console.log("Returned rows = " + results.rows.length);
+    if(results.rows.length==2){
+        changePage("loggedInPage",results.rows.item(0).data, results.rows.item(1).data);
+    } else {
+        changePage("loginPage");
+    }
+}
 
-var draw_qrcode = function() {
-	var text = "Hello moto";
-        document.getElementById('qr').innerHTML = create_qrcode(text);
-};
+function addValues(value, name) {
+    tx.executeSql('INSERT INTO DEMO (id, data) VALUES (1, '+value+')');
+    tx.executeSql('INSERT INTO DEMO (id, data) VALUES (2, '+name+')');
+}
 
-window.addEventListener('load', function() {
-        // txEmail and txPassword are available
-        
-       
-        var btLogin = document.getElementById("btLogin");
+var selected = false;
+function imagePress() {
+    if(selected==false){
+        var element = document.getElementById("checkBoxImage");
+        element.src = "img/checkbox_on.png";
+        selected = true;
+    } else {
+        document.getElementById("checkBoxImage").src = "img/checkbox_off.png";
+        selected = false;
+    }
+}
+
+function drawMain(){
+    document.getElementById("loginPage").style.display = "block";
+    document.getElementById("errorText").style.display = "none";
+    document.getElementById("errorText2").style.display = "none";
+    document.getElementById("mainText").style.display = "block";
+}
+
+function drawError() {
+    document.getElementById("errorText").style.display = "block";
+    document.getElementById("errorText2").style.display = "none";
+    document.getElementById("mainText").style.display = "none";
+}
+
+function drawText() {
+    document.getElementById("errorText").style.display = "none";
+    document.getElementById("errorText2").style.display = "none";
+    document.getElementById("mainText").style.display = "block";
+}
+
+function drawError2(){
+    document.getElementById("errorText").style.display = "none";
+    document.getElementById("errorText2").style.display = "block";
+    document.getElementById("mainText").style.display = "none";
+}
+
+document.addEventListener("deviceready", onDeviceReady, false);
+function onDeviceReady() {
+    
+    var db = window.openDatabase("test", "1.0", "Test DB", 1000000);
+    db.transaction(populateDB);
+    db.transaction(queryDB);
+    
+    
+    var btLogin = document.getElementById("btLogin");
         btLogin.onclick = function() {
+            
                 var txEmail = document.getElementById("txEmail");
                 var txPassword = document.getElementById("txPassword");
-               
+               txPassword.value = "";
                
                 var httpResponse = new XMLHttpRequest();
-                httpResponse.open("GET", "https://manage2.vistab.co.nz/api/v1/config?kiosk=crt001", true);
+                httpResponse.open("GET", "https://manage2.vistab.co.nz/api/v1/code?username="+txEmail.value+"&password="+txPassword.value, true);
                 httpResponse.onreadystatechange = function() {
-                    console.log(httpResponse.responseText);
+                    if(this.readyState==4){
+                        var myObject;
+                        try {
+                            myObject = JSON.parse(httpResponse.responseText);
+                            alert(httpResponse.responseText);
+                            if(myObject.Code=="1"){
+                                if(selected==true){
+                                    addValues(myObject.Result,myObject.Name);
+                                    changePage("loggedInPage");
+                                } else {
+                                    
+                                }
+                            } else {
+                                drawError();
+                            }
+                        } catch (err){
+                            drawError2();
+                        }
+                    }
                 }
                 httpResponse.send();
-                
-                console.log("asdfasdf "+txEmail.value+" asdfasdf "+txPassword.value);
-               
-                changePage("loggedInPage");
-                draw_qrcode();
         }
-        
-        //display the first page
-        changePage("loginPage");
-       
-});
+}
                 </script>
         </head>
         <body>
-               
-                
-               
                 <div class="pageThing" id="loginPage">
                        <img src="img\main.png" class="logo"/>
                         <div class="formArea">
-                                Please enter your details.
+                            <div id="mainText">Please enter your details.</div>
+                            <div id="errorText" class="errorStyle">Invalid details</div>
+                            <div id="errorText2" class="errorStyle">Unable to contact server</div>
                                 <br>
                                 <input type="email" class="formElement" id="txEmail" placeHolder="email">
                                 <br>
                                 <input type="password" class="formElement" id="txPassword" placeHolder="password">
+                                <br>
+                                <div class="checkBoxText"><img src="img\checkbox_off.png" onclick="imagePress()" id="checkBoxImage"/>Save my details</div>
                                 <br>
                                 <input type="button" id="btLogin" value="Login" class="formSubmit">
                         </div>
                 </div>
                
                 <div class="pageThing" id="loggedInPage">
-                        
-                        <div id="qr" class="QR"></div>
-                        <div id="name" class="theText">Peter Kipping</div>
-               
+                    <div id="qr" class="QR"></div>
+                </div>
         </body>
 </html>
